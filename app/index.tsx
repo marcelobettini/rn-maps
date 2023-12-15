@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -11,24 +11,36 @@ import * as Location from "expo-location";
 import { TextInput } from "react-native-gesture-handler";
 
 const initialRegion = {
-  latitude: -34.37,
-  longitude: -55.32,
-  latitudeDelta: 1,
-  longitudeDelta: 1,
+  latitude: -37.32,
+  longitude: -59.13,
+  latitudeDelta: 0.1,
+  longitudeDelta: 0.1,
 };
 const App: React.FC = () => {
-  const [region, setRegion] = useState<Region | undefined>(initialRegion);
+  const [region, setRegion] = useState<Region>(initialRegion);
   const [searchText, setSearchText] = useState<string>("");
 
   const searchPlace = () => {
     if (!searchText.trim().length) return;
+    console.log("starting func");
+    console.log(searchText);
     const googleApisUrl =
-      "https://maps.googleapis.com/maps/api/place/textSearch/json";
+      "https://maps.googleapis.com/maps/api/place/textsearch/json";
     const input = searchText.trim();
-    const location = `${
-      (initialRegion.latitude, initialRegion.longitude)
-    }&radius=1500`;
-    const url = `${googleApisUrl}?query=${input}&${location}&key=`; //api key
+    const location = `${(region.latitude, region.longitude)}&radius=2500`; //meters
+    const url = `${googleApisUrl}?query=${input}&${location}&key=AIzaSyDaXlAMBaEplUlHsEGtVMs1flnU2EyV8Ts`; //api key
+    console.log(url);
+    fetch(url)
+      .then(res => res.json())
+      .then(places => {
+        if (places && places.results) {
+          for (const place of places.results) {
+            console.log(place.geometry.location.lat);
+            console.log(place.geometry.location.lng);
+          }
+        } else console.log("Nothing here");
+      })
+      .catch(err => console.error(err));
   };
   const checkLocationPermission = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -75,10 +87,10 @@ const App: React.FC = () => {
         provider={PROVIDER_GOOGLE}
         initialRegion={region}
         region={region}
-        onRegionChange={data => {}}
         showsCompass
         showsUserLocation
         showsMyLocationButton
+        // onRegionChange={data => {}}
         onRegionChangeComplete={r => setRegion(r)}
       />
       <View style={styles.coordsContainer}>
