@@ -1,12 +1,18 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   StyleSheet,
   View,
   Text,
   ActivityIndicator,
   TouchableOpacity,
+  Keyboard,
 } from "react-native";
-import MapView, { PROVIDER_GOOGLE, Region } from "react-native-maps";
+import MapView, {
+  LatLng,
+  Marker,
+  PROVIDER_GOOGLE,
+  Region,
+} from "react-native-maps";
 import * as Location from "expo-location";
 import { TextInput } from "react-native-gesture-handler";
 
@@ -19,6 +25,8 @@ const initialRegion = {
 const App: React.FC = () => {
   const [region, setRegion] = useState<Region>(initialRegion);
   const [searchText, setSearchText] = useState<string>("");
+  const [places, setPlaces] = useState<any[]>([]);
+  const map = useRef<MapView | null>(null);
 
   const searchPlace = () => {
     if (!searchText.trim().length) return;
@@ -34,11 +42,34 @@ const App: React.FC = () => {
       .then(res => res.json())
       .then(places => {
         if (places && places.results) {
+          const coords: LatLng[] = [];
           for (const place of places.results) {
+            console.log(place.name);
+            console.log(place.formatted_address);
             console.log(place.geometry.location.lat);
             console.log(place.geometry.location.lng);
+            console.log("---------------------------------------");
+            coords.push({
+              latitude: place.geometry.location.lat,
+              longitude: place.geometry.location.lng,
+            });
+            console.log(places.results[0]);
           }
-        } else console.log("Nothing here");
+          setPlaces(places.results);
+          //ajustaremos el zoom del mapa para que revele todos los lugares encontrados
+          if (coords.length) {
+            map.current?.fitToCoordinates(coords, {
+              edgePadding: {
+                top: 50,
+                right: 50,
+                bottom: 50,
+                left: 50,
+              },
+              animated: true,
+            });
+            Keyboard.dismiss();
+          }
+        }
       })
       .catch(err => console.error(err));
   };
@@ -88,11 +119,29 @@ const App: React.FC = () => {
         initialRegion={region}
         region={region}
         showsCompass
-        showsUserLocation
-        showsMyLocationButton
+        showsMyLocationButton={true}
+        // showsUserLocation
         // onRegionChange={data => {}}
         onRegionChangeComplete={r => setRegion(r)}
-      />
+        ref={map} //to later zoom the map according to places found
+      >
+        {places.length
+          ? places.map((place, idx) => {
+              const coord: LatLng = {
+                latitude: place.geometry.location.lat,
+                longitude: place.geometry.location.lng,
+              };
+              return (
+                <Marker
+                  key={`coord-marker-${idx}`}
+                  coordinate={coord}
+                  title={place.name}
+                  description={place.formatted_address}
+                />
+              );
+            })
+          : null}
+      </MapView>
       <View style={styles.coordsContainer}>
         <Text>Lat: {region?.latitude.toFixed(2)}</Text>
         <Text>Lon: {region?.longitude.toFixed(2)}</Text>
@@ -105,7 +154,7 @@ const App: React.FC = () => {
           autoCapitalize="characters"
         />
         <TouchableOpacity style={styles.btnSearch} onPress={searchPlace}>
-          <Text>GO</Text>
+          <Text style={styles.btnText}>GO</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -129,15 +178,36 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     position: "absolute",
-    width: "60%",
+    width: 260,
+    top: 10,
+    alignSelf: "center",
+    alignItems: "center",
+    left: "50%", // Center horizontally
+    marginLeft: -130, // Adjust based on the half of your container width
+    backgroundColor: "rgba(255, 105, 180, 0.581)",
+    paddingVertical: 10,
+    borderRadius: 10,
   },
   searchInput: {
     color: "black",
     backgroundColor: "white",
+    width: "90%",
+    borderRadius: 10,
+    height: 35,
+    paddingHorizontal: 5,
   },
   btnSearch: {
-    width: 50,
-    backgroundColor: "hotpink",
+    marginTop: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 100,
+    backgroundColor: "white",
+    borderRadius: 10,
+    height: 35,
+  },
+  btnText: {
+    fontSize: 20,
+    fontWeight: "800",
   },
 });
 
