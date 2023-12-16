@@ -8,6 +8,7 @@ import {
   Keyboard,
 } from "react-native";
 import MapView, {
+  Callout,
   LatLng,
   Marker,
   PROVIDER_GOOGLE,
@@ -137,7 +138,18 @@ const App: React.FC = () => {
                   coordinate={coord}
                   title={place.name}
                   description={place.formatted_address}
-                />
+                >
+                  <Callout>
+                    <View style={styles.calloutContainer}>
+                      <Text>{place.name}</Text>
+                      <Text
+                        style={place.open_now ? styles.open : styles.closed}
+                      >
+                        {place.open_now ? "Open" : "Closed"}
+                      </Text>
+                    </View>
+                  </Callout>
+                </Marker>
               );
             })
           : null}
@@ -208,6 +220,19 @@ const styles = StyleSheet.create({
   btnText: {
     fontSize: 20,
     fontWeight: "800",
+  },
+  calloutContainer: {
+    flexWrap: "wrap",
+    minHeight: 30,
+    maxHeight: "auto",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  open: {
+    color: "green",
+  },
+  closed: {
+    color: "red",
   },
 });
 
