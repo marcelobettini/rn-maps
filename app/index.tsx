@@ -16,14 +16,24 @@ import MapView, {
 } from "react-native-maps";
 import * as Location from "expo-location";
 import { TextInput } from "react-native-gesture-handler";
+import MapViewDirections from "react-native-maps-directions";
 
 const initialRegion = {
   latitude: -37.32,
   longitude: -59.13,
-  latitudeDelta: 0.1,
-  longitudeDelta: 0.1,
+  latitudeDelta: 0.7,
+  longitudeDelta: 0.7,
 };
+
 const App: React.FC = () => {
+  const [origin, setOrigin] = useState<LatLng>({
+    latitude: -37.32,
+    longitude: -59.13,
+  });
+  const [destination, setDestination] = useState<LatLng>({
+    latitude: -37.22,
+    longitude: -59.03,
+  });
   const [region, setRegion] = useState<Region>(initialRegion);
   const [searchText, setSearchText] = useState<string>("");
   const [places, setPlaces] = useState<any[]>([]);
@@ -153,6 +163,27 @@ const App: React.FC = () => {
               );
             })
           : null}
+        <Marker
+          draggable
+          title="origen"
+          coordinate={origin}
+          onDragEnd={direction => setOrigin(direction.nativeEvent.coordinate)}
+        />
+        <Marker
+          draggable
+          title="destino"
+          coordinate={destination}
+          onDragEnd={direction =>
+            setDestination(direction.nativeEvent.coordinate)
+          }
+        />
+        <MapViewDirections
+          strokeColor="red"
+          strokeWidth={5}
+          origin={origin}
+          destination={destination}
+          apikey="AIzaSyDaXlAMBaEplUlHsEGtVMs1flnU2EyV8Ts"
+        />
       </MapView>
       <View style={styles.coordsContainer}>
         <Text>Lat: {region?.latitude.toFixed(2)}</Text>
