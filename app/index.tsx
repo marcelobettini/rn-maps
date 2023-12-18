@@ -116,8 +116,8 @@ const App: React.FC = () => {
     <View style={styles.container}>
       <MapView
         style={StyleSheet.absoluteFillObject}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={region}
+        // provider={PROVIDER_GOOGLE}
+        // initialRegion={region} -> not necessary in this context
         region={region}
         showsCompass
         showsMyLocationButton={true}
