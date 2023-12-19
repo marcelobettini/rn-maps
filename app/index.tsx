@@ -44,11 +44,6 @@ const App: React.FC = () => {
         if (places && places.results) {
           const coords: LatLng[] = [];
           for (const place of places.results) {
-            console.log(place.name);
-            console.log(place.formatted_address);
-            console.log(place.geometry.location.lat);
-            console.log(place.geometry.location.lng);
-            console.log("---------------------------------------");
             coords.push({
               latitude: place.geometry.location.lat,
               longitude: place.geometry.location.lng,
