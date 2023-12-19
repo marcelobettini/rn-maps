@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -41,8 +41,8 @@ const App: React.FC = () => {
 
   const searchPlace = () => {
     if (!searchText.trim().length) return;
-    console.log("starting func");
-    console.log(searchText);
+    setPlaces([]);
+
     const googleApisUrl =
       "https://maps.googleapis.com/maps/api/place/textsearch/json";
     const input = searchText.trim();
@@ -85,42 +85,62 @@ const App: React.FC = () => {
       .catch(err => console.error(err));
   };
   const checkLocationPermission = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    console.log(status);
-    if (status !== "granted") {
-      console.log("Location permission denied");
-      return;
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("Location permission status:", status);
+
+      if (status !== "granted") {
+        console.log("Location permission denied");
+        // Handle denial gracefully, e.g., show a message to the user
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error checking location permission:", error);
+      // Handle the error, perhaps by returning false or rethrowing
+      return false;
     }
   };
 
-  // const requestLocationPermission = async () => {
-  //   try {
-  //     console.log("await checkLocationPermission();");
-  //     await checkLocationPermission();
-  //     console.log("await Location.getCurrentPositionAsync({})");
-  //     const location = await Location.getCurrentPositionAsync({});
-  //     console.log("Ready");
-  //     const { latitude, longitude } = location.coords;
-  //     console.log(latitude, longitude);
+  const requestLocationPermission = async () => {
+    try {
+      const permissionGranted = await checkLocationPermission();
 
-  //     setRegion({
-  //       latitude,
-  //       longitude,
-  //       latitudeDelta: 0.05,
-  //       longitudeDelta: 0.05,
-  //     });
-  //   } catch (error) {
-  //     console.error("Error getting location:", error);
-  //   }
-  // };
+      if (!permissionGranted) {
+        // Handle the case where permission is denied
+        return;
+      }
 
-  if (!initialRegion) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size={"large"} color={"hotpink"} />
-      </View>
-    );
-  }
+      const location = await Location.getCurrentPositionAsync();
+      console.log("Location:", location);
+
+      const { latitude, longitude } = location.coords;
+      console.log("Latitude:", latitude, "Longitude:", longitude);
+
+      setRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+    } catch (error) {
+      console.error("Error getting location:", error);
+      // Handle the error, perhaps by showing an error message to the user
+    }
+  };
+
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
+
+  // if (!initialRegion) {
+  //   return (
+  //     <View style={styles.container}>
+  //       <ActivityIndicator size={"large"} color={"hotpink"} />
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={styles.container}>
@@ -153,9 +173,13 @@ const App: React.FC = () => {
                     <View style={styles.calloutContainer}>
                       <Text>{place.name}</Text>
                       <Text
-                        style={place.open_now ? styles.open : styles.closed}
+                        style={
+                          place.opening_hours?.open_now
+                            ? styles.open
+                            : styles.closed
+                        }
                       >
-                        {place.open_now ? "Open" : "Closed"}
+                        {place.opening_hours?.open_now ? "Open" : "Closed"}
                       </Text>
                     </View>
                   </Callout>
