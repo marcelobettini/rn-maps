@@ -30,8 +30,6 @@ const App: React.FC = () => {
 
   const searchPlace = () => {
     if (!searchText.trim().length) return;
-    console.log("starting func");
-    console.log(searchText);
     const googleApisUrl =
       "https://maps.googleapis.com/maps/api/place/textsearch/json";
     const input = searchText.trim();
@@ -111,11 +109,11 @@ const App: React.FC = () => {
       <MapView
         style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_GOOGLE}
-        initialRegion={region}
+        // initialRegion={region} Not really necessary in this case
         region={region}
         showsCompass
-        showsMyLocationButton={true}
-        // showsUserLocation
+        showsMyLocationButton
+        //showsUserLocation -> IOS only
         // onRegionChange={data => {}}
         onRegionChangeComplete={r => setRegion(r)}
         ref={map} //to later zoom the map according to places found
