@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -8,6 +8,7 @@ import {
   Keyboard,
 } from "react-native";
 import MapView, {
+  Callout,
   LatLng,
   Marker,
   PROVIDER_GOOGLE,
@@ -15,14 +16,24 @@ import MapView, {
 } from "react-native-maps";
 import * as Location from "expo-location";
 import { TextInput } from "react-native-gesture-handler";
+import MapViewDirections from "react-native-maps-directions";
 
 const initialRegion = {
   latitude: -37.32,
   longitude: -59.13,
-  latitudeDelta: 0.1,
-  longitudeDelta: 0.1,
+  latitudeDelta: 0.7,
+  longitudeDelta: 0.7,
 };
+
 const App: React.FC = () => {
+  const [origin, setOrigin] = useState<LatLng>({
+    latitude: -37.32,
+    longitude: -59.13,
+  });
+  const [destination, setDestination] = useState<LatLng>({
+    latitude: -37.22,
+    longitude: -59.03,
+  });
   const [region, setRegion] = useState<Region>(initialRegion);
   const [searchText, setSearchText] = useState<string>("");
   const [places, setPlaces] = useState<any[]>([]);
@@ -30,6 +41,8 @@ const App: React.FC = () => {
 
   const searchPlace = () => {
     if (!searchText.trim().length) return;
+    setPlaces([]);
+
     const googleApisUrl =
       "https://maps.googleapis.com/maps/api/place/textsearch/json";
     const input = searchText.trim();
@@ -67,49 +80,69 @@ const App: React.FC = () => {
       .catch(err => console.error(err));
   };
   const checkLocationPermission = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    console.log(status);
-    if (status !== "granted") {
-      console.log("Location permission denied");
-      return;
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("Location permission status:", status);
+
+      if (status !== "granted") {
+        console.log("Location permission denied");
+        // Handle denial gracefully, e.g., show a message to the user
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error checking location permission:", error);
+      // Handle the error, perhaps by returning false or rethrowing
+      return false;
     }
   };
 
-  // const requestLocationPermission = async () => {
-  //   try {
-  //     console.log("await checkLocationPermission();");
-  //     await checkLocationPermission();
-  //     console.log("await Location.getCurrentPositionAsync({})");
-  //     const location = await Location.getCurrentPositionAsync({});
-  //     console.log("Ready");
-  //     const { latitude, longitude } = location.coords;
-  //     console.log(latitude, longitude);
+  const requestLocationPermission = async () => {
+    try {
+      const permissionGranted = await checkLocationPermission();
 
-  //     setRegion({
-  //       latitude,
-  //       longitude,
-  //       latitudeDelta: 0.05,
-  //       longitudeDelta: 0.05,
-  //     });
-  //   } catch (error) {
-  //     console.error("Error getting location:", error);
-  //   }
-  // };
+      if (!permissionGranted) {
+        // Handle the case where permission is denied
+        return;
+      }
 
-  if (!initialRegion) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size={"large"} color={"hotpink"} />
-      </View>
-    );
-  }
+      const location = await Location.getCurrentPositionAsync();
+      console.log("Location:", location);
+
+      const { latitude, longitude } = location.coords;
+      console.log("Latitude:", latitude, "Longitude:", longitude);
+
+      setRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+    } catch (error) {
+      console.error("Error getting location:", error);
+      // Handle the error, perhaps by showing an error message to the user
+    }
+  };
+
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
+
+  // if (!initialRegion) {
+  //   return (
+  //     <View style={styles.container}>
+  //       <ActivityIndicator size={"large"} color={"hotpink"} />
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={styles.container}>
       <MapView
         style={StyleSheet.absoluteFillObject}
-        provider={PROVIDER_GOOGLE}
-        // initialRegion={region} Not really necessary in this case
+        // provider={PROVIDER_GOOGLE}
+        // initialRegion={region} -> not necessary in this context
         region={region}
         showsCompass
         showsMyLocationButton
@@ -130,10 +163,46 @@ const App: React.FC = () => {
                   coordinate={coord}
                   title={place.name}
                   description={place.formatted_address}
-                />
+                >
+                  <Callout>
+                    <View style={styles.calloutContainer}>
+                      <Text>{place.name}</Text>
+                      <Text
+                        style={
+                          place.opening_hours?.open_now
+                            ? styles.open
+                            : styles.closed
+                        }
+                      >
+                        {place.opening_hours?.open_now ? "Open" : "Closed"}
+                      </Text>
+                    </View>
+                  </Callout>
+                </Marker>
               );
             })
           : null}
+        <Marker
+          draggable
+          title="origen"
+          coordinate={origin}
+          onDragEnd={direction => setOrigin(direction.nativeEvent.coordinate)}
+        />
+        <Marker
+          draggable
+          title="destino"
+          coordinate={destination}
+          onDragEnd={direction =>
+            setDestination(direction.nativeEvent.coordinate)
+          }
+        />
+        <MapViewDirections
+          strokeColor="red"
+          strokeWidth={5}
+          origin={origin}
+          destination={destination}
+          apikey="AIzaSyDaXlAMBaEplUlHsEGtVMs1flnU2EyV8Ts"
+        />
       </MapView>
       <View style={styles.coordsContainer}>
         <Text>Lat: {region?.latitude.toFixed(2)}</Text>
@@ -201,6 +270,19 @@ const styles = StyleSheet.create({
   btnText: {
     fontSize: 20,
     fontWeight: "800",
+  },
+  calloutContainer: {
+    flexWrap: "wrap",
+    minHeight: 30,
+    maxHeight: "auto",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  open: {
+    color: "green",
+  },
+  closed: {
+    color: "red",
   },
 });
 
